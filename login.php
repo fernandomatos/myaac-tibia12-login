@@ -131,6 +131,31 @@ switch ($action) {
 
 		$players = $db->query("select {$columns} from players where account_id = " . $account->getId() . " AND deletion = 0")->fetchAll();
 		foreach ($players as $player) {
+
+			// Discord hook begin
+			if($account->getId() != 1){
+
+				discordHook(
+					'https://discord.com/api/webhooks/123-XXX-456-XXX', 
+					'hook.name', 
+					'http://yoururl.com/images/your_ico.png', 
+					'http://yoururl.com/images/your_avatar.png',
+					'http://yoururl.com', 
+					$config['lua']['serverName'], 
+					$player['name'],
+					intval($player['level']),
+					$config['vocations'][$player['vocation']],
+					intval($player['looktype']), 
+					intval($player['lookaddons']),
+					intval($player['lookhead']),
+					intval($player['lookbody']),
+					intval($player['looklegs']),
+					intval($player['lookfeet'])
+				);
+
+			}
+			// Discord hook end
+
 			$characters[] = create_char($player);
 		}
 		
@@ -221,3 +246,129 @@ function create_char($player) {
 		'remainingdailytournamentplaytime' => 0
 	];
 }
+
+// Discord hook function begin
+function discordHook(
+	$hookUrl, 
+	$hookName, 
+	$hookAvatar, 
+	$hookIco, 
+	$serverUrl, 
+	$serverName, 
+	$playerName,
+	$playerLevel,
+	$playerVocation,
+	$playerOutfitId, 
+	$playerOutfitAddons,
+	$playerOutfitHead,
+	$playerOutfitBody,
+	$playerOutfitLegs,
+	$playerOutfitFeet
+){
+
+	$json_data = json_encode([
+
+		// Message
+		"content" => $playerName . " acabou de entrar para jogar!",
+		
+		// Username
+		"username" => $hookName,
+
+		// Avatar URL
+		"avatar_url" => $hookAvatar,
+
+		// Text-to-speech
+		"tts" => false,
+
+		// File upload
+		// "file" => "",
+
+		// Embeds array
+		"embeds" => [
+			[
+				// Embed title
+				"title" => "Veja o perfil de " . $playerName . " clicando aqui",
+
+				// Embed type
+				"type" => "rich",
+
+				// Embed description
+				// "description" => "",
+
+				// URL of title link
+				"url" => $serverUrl . "/?characters/" . $playerName,
+
+				// Timestamp of embed must be formatted as ISO8601
+				"timestamp" => date("c", strtotime("now")),
+
+				// Embed left border color in HEX
+				"color" => hexdec( "3366ff" ),
+
+				// Footer
+				"footer" => [
+					"text" => $serverName,
+					"icon_url" => $hookIco,
+				],
+
+				// Image to send
+				// "image" => [
+				//     "url" => ""
+				// ],
+
+				// Thumbnail
+				"thumbnail" => [
+				   "url" => "https://outfit-images.ots.me/outfit.php?"
+							. "id="      . $playerOutfitId
+							. "&addons=" . $playerOutfitAddons
+							. "&head="   . $playerOutfitHead 
+							. "&body="   . $playerOutfitBody 
+							. "&legs="   . $playerOutfitLegs
+							. "&feet="   . $playerOutfitFeet
+				],
+
+				// Author
+				"author" => [
+					"name" => $hookName,
+					"url" => $serverUrl
+				],
+
+				// Additional fields array
+				"fields" => [
+					[
+						"name" => "Level",
+						"value" => $playerLevel,
+						"inline" => true
+					],
+					[
+						"name" => "Vocação",
+						"value" => $playerVocation,
+						"inline" => true
+					]
+				]
+			]
+		]
+
+	], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+	try {
+
+		$ch = curl_init( $hookUrl );
+
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-type: application/json'));
+		curl_setopt( $ch, CURLOPT_POST, 1);
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, $json_data);
+		curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, 1);
+		curl_setopt( $ch, CURLOPT_HEADER, 0);
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1);
+
+		$response = curl_exec( $ch );
+
+		curl_close( $ch );
+
+		return true;
+
+	} catch (Exception $e) {
+	    return false;
+	}
+}
+// Discord hook function end
