@@ -157,6 +157,13 @@ switch ($action) {
 			// Discord hook end
 
 			$characters[] = create_char($player);
+
+		$players = $db->query("select {$columns} from players where account_id = " . $account->getId() . " AND deletion = 0");
+		if($players && $players->rowCount() > 0) {
+			$players = $players->fetchAll();
+			foreach ($players as $player) {
+				$characters[] = create_char($player);
+			}
 		}
 		
 		$save = false;
@@ -184,7 +191,7 @@ switch ($action) {
 					} else {
 						$premDays -= $days;
 						$reminder = (int)(($timeNow - $lastDay) % 86400);
-						$lastDay = $timeNow - reminder;
+						$lastDay = $timeNow - $reminder;
 					}
 
 					$save = true;
